@@ -5,6 +5,8 @@ import MetricValue from './ui/MetricValue';
 import SlopeIcon from './ui/SlopeIcon';
 import { ScoreBar } from './ui/ScoreBar';
 import { Badge } from './ui/Badge';
+import { MetricCard } from './ui/MetricCard';
+import { OpenInterestSection } from './sections/OpenInterestSection';
 
 interface SymbolRowProps {
   symbol: string;
@@ -12,13 +14,6 @@ interface SymbolRowProps {
   showLatency?: boolean;
 }
 
-/**
- * SymbolRow renders a single row in the desktop table.  Clicking
- * toggles an expanded view with detailed orderflow stats, the depth
- * ladder and additional telemetry panels.  All values are rendered
- * directly from the server‑provided metrics; no computations are
- * performed on the client.
- */
 const SymbolRow: React.FC<SymbolRowProps> = ({ symbol, data, showLatency = false }) => {
   const [expanded, setExpanded] = useState(false);
   const { state, legacyMetrics, timeAndSales, cvd, openInterest, funding, absorption, bids, asks } = data;
@@ -90,332 +85,253 @@ const SymbolRow: React.FC<SymbolRowProps> = ({ symbol, data, showLatency = false
     return `${mins}m`;
   };
   return (
-    <div className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors">
-      {/* Main Row Header */}
+    <div className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors">
+      {/* Main Row - Fixed Height & Width */}
       <div
-        className="grid grid-cols-12 gap-4 p-4 items-center cursor-pointer select-none"
+        className="grid gap-0 px-4 items-center cursor-pointer select-none h-14"
+        style={{ gridTemplateColumns: '120px 100px 110px 90px 90px 100px 80px 90px' }}
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="col-span-2 flex items-center space-x-2">
-          <button className="text-zinc-500 hover:text-white transition-colors">
-            <svg className={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        {/* Symbol */}
+        <div className="flex items-center gap-2">
+          <button className="text-zinc-500 hover:text-white transition-colors flex-shrink-0">
+            <svg className={`w-3 h-3 transform transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7 7" />
             </svg>
           </button>
-          <span className="font-bold text-white">{symbol}</span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded border border-zinc-700">PERP</span>
+          <span className="font-bold text-white text-sm truncate">{symbol}</span>
+          <span className="text-[8px] px-1 py-0.5 bg-zinc-800 text-zinc-500 rounded flex-shrink-0">PERP</span>
         </div>
-        <div className="col-span-2 font-mono text-zinc-200">{legacyMetrics.price.toFixed(2)}</div>
-        <div className="col-span-2 flex items-center space-x-2">
-          <MetricValue value={legacyMetrics.obiWeighted} />
+
+        {/* Price */}
+        <div className="text-right font-mono text-sm text-zinc-200">
+          {legacyMetrics.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
-        <div className="col-span-2">
-          <MetricValue value={legacyMetrics.deltaZ} />
-        </div>
-        <div className="col-span-2 flex items-center space-x-2">
-          <SlopeIcon value={legacyMetrics.cvdSlope} />
-          <MetricValue value={legacyMetrics.cvdSlope} />
-        </div>
-        <div className="col-span-1 flex items-center justify-center">
-          {legacyMetrics.tradeSignal === 1 ? (
-            <span className="text-green-400 font-bold text-xs bg-green-900/40 px-2 py-0.5 rounded border border-green-800">LONG</span>
-          ) : legacyMetrics.tradeSignal === -1 ? (
-            <span className="text-red-400 font-bold text-xs bg-red-900/40 px-2 py-0.5 rounded border border-red-800">SHORT</span>
+
+        {/* OI (New) */}
+        <div className="flex flex-col items-end justify-center pr-2">
+          {openInterest ? (
+            <>
+              <span className="font-mono text-xs text-zinc-300 font-bold">{(openInterest.openInterest / 1_000_000).toFixed(2)}M</span>
+              <div className="flex items-center gap-1 text-[10px]">
+                <span className={openInterest.delta > 0 ? 'text-green-400' : openInterest.delta < 0 ? 'text-red-400' : 'text-zinc-500'}>
+                  {openInterest.delta > 0 ? '+' : ''}{(openInterest.delta / 1000).toFixed(0)}k
+                </span>
+              </div>
+            </>
           ) : (
             <span className="text-zinc-600 text-xs">-</span>
           )}
         </div>
-        <div className="col-span-1 text-right">
+
+        {/* OBI (W) */}
+        <div className="text-center">
+          <MetricValue value={legacyMetrics.obiWeighted} />
+        </div>
+
+        {/* Delta Z */}
+        <div className="text-center">
+          <MetricValue value={legacyMetrics.deltaZ} />
+        </div>
+
+        {/* CVD Slope */}
+        <div className="flex items-center justify-center gap-1">
+          <SlopeIcon value={legacyMetrics.cvdSlope} />
+          <MetricValue value={legacyMetrics.cvdSlope} />
+        </div>
+
+        {/* Signal */}
+        <div className="flex justify-center">
+          {legacyMetrics.tradeSignal === 1 ? (
+            <span className="text-green-400 font-bold text-[10px] bg-green-900/40 px-1.5 py-0.5 rounded border border-green-800">LONG</span>
+          ) : legacyMetrics.tradeSignal === -1 ? (
+            <span className="text-red-400 font-bold text-[10px] bg-red-900/40 px-1.5 py-0.5 rounded border border-red-800">SHORT</span>
+          ) : (
+            <span className="text-zinc-600 text-xs">—</span>
+          )}
+        </div>
+
+        {/* Status */}
+        <div className="flex justify-end">
           <Badge state={state} />
         </div>
       </div>
+
       {/* Expanded Content */}
       {expanded && (
-        <div className="bg-zinc-900/30 border-t border-zinc-800 p-4 grid grid-cols-12 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Left Stats Column */}
-          <div className="col-span-3 space-y-4">
-            <div className="bg-zinc-950 p-3 rounded border border-zinc-800">
-              <p className="text-zinc-500 text-xs mb-1">Session VWAP</p>
-              <p className="font-mono text-blue-300">{legacyMetrics.vwap.toFixed(2)}</p>
+        <div className="bg-zinc-950/30 border-t border-zinc-800 p-6 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="space-y-8">
+
+            {/* 1. Advanced Metrics Grid */}
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                <span className="w-1 h-1 bg-zinc-500 rounded-full"></span>
+                Advanced Metrics
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <MetricCard
+                  title="Sweep / Fade"
+                  value={legacyMetrics.sweepFadeScore}
+                  showBar
+                  min={-100}
+                  max={100}
+                  suffix="%"
+                  status={Math.abs(legacyMetrics.sweepFadeScore) > 25 ? (legacyMetrics.sweepFadeScore > 0 ? 'positive' : 'negative') : 'neutral'}
+                />
+                <MetricCard
+                  title="Breakout Score"
+                  value={legacyMetrics.breakoutScore}
+                  showBar
+                  min={0}
+                  max={100}
+                  suffix="/100"
+                  status={legacyMetrics.breakoutScore > 60 ? 'warning' : 'neutral'}
+                />
+                <MetricCard
+                  title="Volatility Index"
+                  value={legacyMetrics.regimeWeight * 100}
+                  showBar
+                  min={0}
+                  max={100}
+                  suffix="%"
+                  status={legacyMetrics.regimeWeight > 0.6 ? 'warning' : 'neutral'}
+                />
+                <MetricCard
+                  title="Absorption"
+                  value={legacyMetrics.absorptionScore}
+                  showBar
+                  min={0}
+                  max={100}
+                  suffix="%"
+                  status={legacyMetrics.absorptionScore > 50 ? 'highlight' : 'neutral'}
+                />
+              </div>
             </div>
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">OBI (Weighted)</span>
-                <MetricValue value={legacyMetrics.obiWeighted} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">OBI (Deep Book)</span>
-                <MetricValue value={legacyMetrics.obiDeep} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">OBI Divergence</span>
-                <span className="font-mono text-zinc-300">{Math.abs(legacyMetrics.obiDivergence) * 100 < 0.01 ? '0.0%' : `${(Math.abs(legacyMetrics.obiDivergence) * 100).toFixed(1)}%`}</span>
-              </div>
-            </div>
-          </div>
-          {/* Middle OrderBook Column */}
-          <div className="col-span-5">
-            <div className="mb-2 flex justify-between items-end">
-              <h4 className="text-zinc-400 text-sm font-semibold">Live Orderbook</h4>
-              <span className="text-xs text-zinc-600">Depth 20 Sync</span>
-            </div>
-            <OrderBook bids={bids} asks={asks} currentPrice={legacyMetrics.price} />
-          </div>
-          {/* Right Stats Column */}
-          <div className="col-span-4 space-y-4">
-            {/* Rolling Metrics */}
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Delta 1s (Rolling)</span>
-                <MetricValue value={legacyMetrics.delta1s} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Delta 5s (Rolling)</span>
-                <MetricValue value={legacyMetrics.delta5s} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">CVD (Session)</span>
-                <MetricValue value={legacyMetrics.cvdSession} />
-              </div>
-              {/* Pressure bar */}
-              <div className="pt-4 border-t border-zinc-800/50 mt-4">
-                <div className="flex justify-between text-xs text-zinc-500 mb-1">
-                  <span>Bid Pressure</span>
-                  <span>Ask Pressure</span>
-                </div>
-                <ScoreBar segments={computePressureSegments(legacyMetrics.obiWeighted)} height={4} />
 
-                {/* Advanced Metrics - Responsive Grid */}
-                <div className="mt-4 pt-4 border-t border-zinc-800/50">
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
-                    Advanced Metrics
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                    {/* Sweep Strength */}
-                    <div className="flex flex-col h-20 justify-between p-2.5 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Sweep</span>
-                        <span className={`text-sm font-mono font-bold ${legacyMetrics.sweepFadeScore > 0 ? 'text-green-400' : legacyMetrics.sweepFadeScore < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
-                          {legacyMetrics.sweepFadeScore >= 0 ? '+' : ''}{legacyMetrics.sweepFadeScore.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden flex">
-                        <div className="h-full bg-green-500 transition-all" style={{ width: `${legacyMetrics.sweepFadeScore > 0 ? Math.min(50, legacyMetrics.sweepFadeScore * 50) : 0}%`, marginLeft: '50%' }} />
-                        <div className="h-full bg-red-500 transition-all" style={{ width: `${legacyMetrics.sweepFadeScore < 0 ? Math.min(50, Math.abs(legacyMetrics.sweepFadeScore) * 50) : 0}%`, marginRight: '50%', order: -1 }} />
-                      </div>
-                      <div className="text-[8px] text-zinc-500">
-                        {legacyMetrics.sweepFadeScore > 0.3 ? '🟢 Buy Sweep' : legacyMetrics.sweepFadeScore < -0.3 ? '🔴 Sell Sweep' : '⚪ Balanced'}
-                      </div>
+            {/* 2. Trade Analysis & CVD */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Trade Summary Panel */}
+              <div className="lg:col-span-1 space-y-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                  <span className="w-1 h-1 bg-zinc-500 rounded-full"></span>
+                  Volume Analysis
+                </h3>
+                <div className="bg-zinc-900/40 p-4 rounded-lg border border-zinc-800/50 space-y-4 h-full flex flex-col justify-center">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-500">Aggressive Buy</span>
+                      <span className="font-mono font-bold text-green-400">
+                        {(data.timeAndSales.aggressiveBuyVolume / 1000).toFixed(1)}k
+                      </span>
                     </div>
-
-                    {/* Breakout Momentum */}
-                    <div className="flex flex-col h-20 justify-between p-2.5 bg-pink-500/10 rounded-lg border border-pink-500/20">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Breakout</span>
-                        <span className={`text-sm font-mono font-bold ${legacyMetrics.breakoutScore > 0 ? 'text-blue-400' : legacyMetrics.breakoutScore < 0 ? 'text-orange-400' : 'text-zinc-400'}`}>
-                          {legacyMetrics.breakoutScore >= 0 ? '+' : ''}{legacyMetrics.breakoutScore.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${legacyMetrics.breakoutScore > 0 ? 'bg-blue-500' : 'bg-orange-500'}`}
-                          style={{ width: `${Math.min(100, Math.abs(legacyMetrics.breakoutScore) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="text-[8px] text-zinc-500">
-                        {legacyMetrics.breakoutScore > 0.3 ? '📈 Uptrend' : legacyMetrics.breakoutScore < -0.3 ? '📉 Downtrend' : '➡️ Sideways'}
-                      </div>
-                    </div>
-
-                    {/* Regime Volatility */}
-                    <div className="flex flex-col h-20 justify-between p-2.5 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Volatility</span>
-                        <span className="text-sm font-mono font-bold text-cyan-400">
-                          {(legacyMetrics.regimeWeight * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${legacyMetrics.regimeWeight > 0.7 ? 'bg-red-500' : legacyMetrics.regimeWeight > 0.4 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                          style={{ width: `${Math.min(100, legacyMetrics.regimeWeight * 100)}%` }}
-                        />
-                      </div>
-                      <div className="text-[8px] text-zinc-500">
-                        {legacyMetrics.regimeWeight > 0.7 ? '🔥 High Vol' : legacyMetrics.regimeWeight > 0.4 ? '⚠️ Normal' : '🧊 Low Vol'}
-                      </div>
-                    </div>
-
-                    {/* Absorption */}
-                    <div className="flex flex-col h-20 justify-between p-2.5 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Absorption</span>
-                        <span className="text-sm font-mono font-bold text-yellow-400">
-                          {(legacyMetrics.absorptionScore * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${legacyMetrics.absorptionScore > 0.7 ? 'bg-yellow-500' : legacyMetrics.absorptionScore > 0.3 ? 'bg-amber-500' : 'bg-zinc-600'}`}
-                          style={{ width: `${Math.min(100, legacyMetrics.absorptionScore * 100)}%` }}
-                        />
-                      </div>
-                      <div className="text-[8px] text-zinc-500">
-                        {legacyMetrics.absorptionScore > 0.7 ? '💪 Strong' : legacyMetrics.absorptionScore > 0.3 ? '📦 Moderate' : '⏳ Weak'}
-                      </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-500">Aggressive Sell</span>
+                      <span className="font-mono font-bold text-red-400">
+                        {(data.timeAndSales.aggressiveSellVolume / 1000).toFixed(1)}k
+                      </span>
                     </div>
                   </div>
 
-                  {/* Exhaustion Alert Banner */}
-                  {legacyMetrics.exhaustion && (
-                    <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-orange-900/30 to-red-900/30 border border-orange-500/40">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg animate-pulse">⚠️</span>
-                          <div>
-                            <div className="text-xs font-bold text-orange-400">EXHAUSTION DETECTED</div>
-                            <div className="text-[10px] text-orange-300/70">Momentum signals fading</div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-orange-300 font-mono bg-orange-900/50 px-2 py-1 rounded">
-                          CAUTION
-                        </div>
-                      </div>
+                  {/* Visual Bar */}
+                  <div className="space-y-1">
+                    <div className="w-full bg-zinc-800/50 h-1.5 rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-green-500/80 h-full transition-all duration-500"
+                        style={{ width: `${(data.timeAndSales.aggressiveBuyVolume / ((data.timeAndSales.aggressiveBuyVolume + data.timeAndSales.aggressiveSellVolume) || 1)) * 100}%` }}
+                      />
+                      <div
+                        className="bg-red-500/80 h-full transition-all duration-500"
+                        style={{ width: `${(data.timeAndSales.aggressiveSellVolume / ((data.timeAndSales.aggressiveBuyVolume + data.timeAndSales.aggressiveSellVolume) || 1)) * 100}%` }}
+                      />
                     </div>
-                  )}
+                    <div className="flex justify-between text-[9px] text-zinc-600 font-mono">
+                      <span>BUY DOMINANCE</span>
+                      <span>SELL DOMINANCE</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-zinc-800/30 grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-zinc-900/40 rounded p-1">
+                      <div className="text-[8px] text-zinc-500 uppercase">Small</div>
+                      <div className="text-[10px] font-bold text-zinc-300">{data.timeAndSales.smallTrades}</div>
+                    </div>
+                    <div className="bg-zinc-900/40 rounded p-1">
+                      <div className="text-[8px] text-zinc-500 uppercase">Mid</div>
+                      <div className="text-[10px] font-bold text-blue-300">{data.timeAndSales.midTrades}</div>
+                    </div>
+                    <div className="bg-zinc-900/40 rounded p-1 border border-yellow-900/20">
+                      <div className="text-[8px] text-yellow-700 uppercase">Large</div>
+                      <div className="text-[10px] font-bold text-yellow-500">{data.timeAndSales.largeTrades}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CVD Multi-Timeframe */}
+              <div className="lg:col-span-2 space-y-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                  <span className="w-1 h-1 bg-zinc-500 rounded-full"></span>
+                  Orderflow Dynamics (CVD)
+                </h3>
+                <div className="bg-zinc-900/40 rounded-lg border border-zinc-800/50 overflow-hidden h-full">
+                  <table className="w-full text-xs h-full">
+                    <thead className="bg-zinc-900/60 border-b border-zinc-800/50 text-zinc-500 uppercase font-semibold text-[10px]">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">Timeframe</th>
+                        <th className="px-4 py-2 text-right font-medium">CVD Value</th>
+                        <th className="px-4 py-2 text-right font-medium">Delta Change (Session)</th>
+                        <th className="px-4 py-2 text-center font-medium">State</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/30">
+                      {[
+                        { tf: '1m', ...data.cvd.tf1m },
+                        { tf: '5m', ...data.cvd.tf5m },
+                        { tf: '15m', ...data.cvd.tf15m }
+                      ].map((row) => (
+                        <tr key={row.tf} className="hover:bg-zinc-800/10 transition-colors">
+                          <td className="px-4 py-3 font-mono text-zinc-400 font-bold">{row.tf}</td>
+                          <td className="px-4 py-3 text-right font-mono text-zinc-200">
+                            <MetricValue value={row.cvd} />
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono">
+                            <span className={`px-1.5 py-0.5 rounded ${row.delta > 0 ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                              {row.delta > 0 ? '+' : ''}{row.delta.toFixed(0)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {Math.abs(row.delta) > 500000 ? ( // Arbitrary threshold for highlight
+                              <span className="text-[9px] bg-yellow-900/20 text-yellow-500 px-1.5 py-0.5 rounded border border-yellow-800/30">HIGH VOL</span>
+                            ) : (
+                              <span className="text-zinc-700 text-[10px]">Normal</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-            {/* Trade Summary */}
-            <div className="border-t border-zinc-800 pt-4 mt-4 space-y-2">
-              <h4 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Trade Summary</h4>
-              {/* Aggressive volume bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-zinc-500">
-                  <span>Agg Buy</span>
-                  <span>Agg Sell</span>
+
+            {/* 3. Open Interest Section */}
+            {data.openInterest && (
+              <OpenInterestSection metrics={data.openInterest} />
+            )}
+
+            {/* 4. Exhaustion Alert */}
+            {legacyMetrics.exhaustion && (
+              <div className="p-3 bg-gradient-to-r from-purple-900/40 via-purple-900/10 to-transparent border-l-4 border-purple-500 text-purple-200 text-xs flex items-center gap-3 rounded animate-pulse">
+                <div className="bg-purple-500/20 p-1 rounded-full">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 </div>
-                <ScoreBar segments={computeAggSegments()} height={4} />
-                <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
-                  <span className="text-green-400">{timeAndSales.aggressiveBuyVolume.toFixed(2)}</span>
-                  <span className="text-red-400">{timeAndSales.aggressiveSellVolume.toFixed(2)}</span>
-                </div>
-              </div>
-              {/* Trade count & PPS */}
-              <div className="flex justify-between text-[10px] text-zinc-500">
-                <span>Trades: {timeAndSales.tradeCount}</span>
-                <span>PPS: {timeAndSales.printsPerSecond.toFixed(2)}</span>
-              </div>
-              {/* Size distribution bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-zinc-500">
-                  <span>Size Dist.</span>
-                  <span className="flex space-x-1">
-                    <span className="text-blue-500">S</span>
-                    <span className="text-blue-400">M</span>
-                    <span className="text-blue-300">L</span>
-                  </span>
-                </div>
-                <ScoreBar segments={computeSizeSegments()} height={4} />
-                <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
-                  <span className="text-blue-500">{timeAndSales.smallTrades}</span>
-                  <span className="text-blue-400">{timeAndSales.midTrades}</span>
-                  <span className="text-blue-300">{timeAndSales.largeTrades}</span>
+                <div>
+                  <span className="font-bold block tracking-wide text-purple-300">MARKET EXHAUSTION SIGNAL</span>
+                  <span className="text-purple-300/70">Orderflow imbalance detected. Reversal or fierce consolidation likely.</span>
                 </div>
               </div>
-              {/* Bid/Ask ratio & Burst */}
-              <div className="flex justify-between text-[10px] text-zinc-500">
-                <span>Bid/Ask Ratio: <span className={timeAndSales.bidHitAskLiftRatio > 1 ? 'text-green-400' : timeAndSales.bidHitAskLiftRatio < 1 ? 'text-red-400' : 'text-zinc-300'}>{timeAndSales.bidHitAskLiftRatio.toFixed(2)}</span></span>
-                {timeAndSales.consecutiveBurst.count > 1 ? (
-                  <span>Burst: <span className={timeAndSales.consecutiveBurst.side === 'buy' ? 'text-green-400' : 'text-red-400'}>{timeAndSales.consecutiveBurst.side} ×{timeAndSales.consecutiveBurst.count}</span></span>
-                ) : (
-                  <span>Burst: <span className="text-zinc-300">None</span></span>
-                )}
-              </div>
-              {/* Latency (optional) */}
-              {showLatency && typeof timeAndSales.avgLatencyMs === 'number' && (
-                <div className="text-[10px] text-zinc-500">Avg Latency: {Math.max(0, timeAndSales.avgLatencyMs).toFixed(1)} ms</div>
-              )}
-            </div>
-            {/* Multi‑TF CVD */}
-            <div className="border-t border-zinc-800 pt-4 mt-4 space-y-1">
-              <h4 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Multi‑TF CVD</h4>
-              {/* 1m */}
-              <div className="flex justify-between text-[10px]">
-                <span className="text-zinc-500">1m</span>
-                <span className={cvd.tf1m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf1m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf1m.cvd.toFixed(2)}</span>
-                <span className={cvd.tf1m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf1m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf1m.delta.toFixed(2)}</span>
-                {cvd.tf1m.exhaustion && <span className="text-yellow-400 font-mono">EXH</span>}
-              </div>
-              {/* 5m */}
-              <div className="flex justify-between text-[10px]">
-                <span className="text-zinc-500">5m</span>
-                <span className={cvd.tf5m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf5m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf5m.cvd.toFixed(2)}</span>
-                <span className={cvd.tf5m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf5m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf5m.delta.toFixed(2)}</span>
-                {cvd.tf5m.exhaustion && <span className="text-yellow-400 font-mono">EXH</span>}
-              </div>
-              {/* 15m */}
-              <div className="flex justify-between text-[10px]">
-                <span className="text-zinc-500">15m</span>
-                <span className={cvd.tf15m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf15m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf15m.cvd.toFixed(2)}</span>
-                <span className={cvd.tf15m.delta > 0 ? 'text-green-400 font-mono' : cvd.tf15m.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{cvd.tf15m.delta.toFixed(2)}</span>
-                {cvd.tf15m.exhaustion && <span className="text-yellow-400 font-mono">EXH</span>}
-              </div>
-            </div>
-            {/* Futures Context */}
-            <div className="border-t border-zinc-800 pt-4 mt-4 space-y-1">
-              <h4 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Futures Context</h4>
-              {openInterest && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-zinc-500">Open Interest</span>
-                  <span className="font-mono text-zinc-300">{openInterest.openInterest.toFixed(0)}</span>
-                  <span className={openInterest.delta > 0 ? 'text-green-400 font-mono' : openInterest.delta < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{openInterest.delta.toFixed(0)}</span>
-                </div>
-              )}
-              {funding && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-zinc-500">Funding Rate</span>
-                  <span className={funding.rate > 0 ? 'text-green-400 font-mono' : funding.rate < 0 ? 'text-red-400 font-mono' : 'text-zinc-300 font-mono'}>{(funding.rate * 100).toFixed(4)}%</span>
-                  <span className={funding.trend === 'up' ? 'text-green-400 font-mono' : funding.trend === 'down' ? 'text-red-400 font-mono' : 'text-yellow-400 font-mono'}>{funding.trend === 'up' ? '↑' : funding.trend === 'down' ? '↓' : '→'}</span>
-                </div>
-              )}
-              {funding && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-zinc-500">Time to Funding</span>
-                  <span className="text-zinc-300 font-mono">{formatTimeToFunding(funding.timeToFundingMs)}</span>
-                  <span className="text-zinc-500 font-mono"></span>
-                </div>
-              )}
-            </div>
-            {/* Status Indicators */}
-            <div className="border-t border-zinc-800 pt-4 mt-4">
-              <div className="flex gap-3 items-center text-[10px]">
-                {/* Absorption */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-zinc-500">Absorption:</span>
-                  {absorption && absorption > 0 ? (
-                    <span className="bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded font-mono text-[9px]">ACTIVE</span>
-                  ) : (
-                    <span className="text-zinc-600">-</span>
-                  )}
-                </div>
-                {/* Signal */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-zinc-500">Signal:</span>
-                  {legacyMetrics.tradeSignal === 1 ? (
-                    <span className="bg-green-900/40 text-green-400 px-1.5 py-0.5 rounded font-mono text-[9px]">LONG</span>
-                  ) : legacyMetrics.tradeSignal === -1 ? (
-                    <span className="bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded font-mono text-[9px]">SHORT</span>
-                  ) : (
-                    <span className="text-zinc-600">-</span>
-                  )}
-                </div>
-                {/* State Badge */}
-                <div className="ml-auto">
-                  <Badge state={state} />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

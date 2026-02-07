@@ -1,6 +1,7 @@
 // [GITHUB VERIFIED] Backend implementation of OBI, VWAP, DeltaZ, CVD Slope, and Advanced Scores
 // Senior Quantitative Finance Developer Implementation
 import { OrderbookState, bestBid, bestAsk } from './OrderbookManager';
+import { OpenInterestMonitor, OpenInterestMetrics as OIMetrics } from './OpenInterestMonitor';
 
 // Type for a trade used in the legacy metrics calculations
 interface LegacyTrade {
@@ -38,6 +39,23 @@ const ABSORPTION_WINDOW = 60;
 export class LegacyCalculator {
     // Keep a rolling list of trades for delta calculations (max 10 seconds)
     private trades: LegacyTrade[] = [];
+    private oiMonitor: OpenInterestMonitor | null = null;
+
+    constructor(symbol?: string) {
+        if (symbol) {
+            this.oiMonitor = new OpenInterestMonitor(symbol);
+        }
+    }
+
+    public async updateOpenInterest() {
+        if (this.oiMonitor) {
+            await this.oiMonitor.updateOpenInterest();
+        }
+    }
+
+    public getOpenInterestMetrics(): OIMetrics | null {
+        return this.oiMonitor ? this.oiMonitor.getMetrics() : null;
+    }
     // List of recent delta1s values for Z‐score computation
     private deltaHistory: number[] = [];
     // List of recent session CVD values for slope computation

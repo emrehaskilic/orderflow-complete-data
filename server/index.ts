@@ -172,15 +172,15 @@ function getOrderbook(symbol: string): OrderbookState {
 const getTaS = (s: string) => { if (!timeAndSalesMap.has(s)) timeAndSalesMap.set(s, new TimeAndSales()); return timeAndSalesMap.get(s)!; };
 const getCvd = (s: string) => { if (!cvdMap.has(s)) cvdMap.set(s, new CvdCalculator()); return cvdMap.get(s)!; };
 const getAbs = (s: string) => { if (!absorptionMap.has(s)) absorptionMap.set(s, new AbsorptionDetector()); return absorptionMap.get(s)!; };
-const getLegacy = (s: string) => { if (!legacyMap.has(s)) legacyMap.set(s, new LegacyCalculator()); return legacyMap.get(s)!; };
+const getLegacy = (s: string) => { if (!legacyMap.has(s)) legacyMap.set(s, new LegacyCalculator(s)); return legacyMap.get(s)!; };
 
 function ensureMonitors(symbol: string) {
+    // Open Interest is now managed by LegacyCalculator
+    /*
     if (!oiMonitors.has(symbol)) {
-        const m = new OpenInterestMonitor(symbol);
-        m.onUpdate(d => lastOpenInterest.set(symbol, d));
-        m.start();
-        oiMonitors.set(symbol, m);
+       // Deprecated
     }
+    */
     if (!fundingMonitors.has(symbol)) {
         const m = new FundingMonitor(symbol);
         m.onUpdate(d => lastFunding.set(symbol, d));
@@ -469,6 +469,7 @@ function broadcastMetrics(
 ) {
     const THROTTLE_MS = 250; // 4Hz max per symbol
     const meta = getMeta(s);
+    if (leg) leg.updateOpenInterest();
     const now = Date.now();
 
     // Throttle check - skip if last broadcast was too recent
@@ -494,13 +495,13 @@ function broadcastMetrics(
         state: ob.uiState,
         timeAndSales: tas.computeMetrics(),
         cvd: {
-            tf1m: cvdM.find(x => x.timeframe === '1m') || { cvd: 0, delta: 0 },
-            tf5m: cvdM.find(x => x.timeframe === '5m') || { cvd: 0, delta: 0 },
-            tf15m: cvdM.find(x => x.timeframe === '15m') || { cvd: 0, delta: 0 },
+            tf1m: cvdM.find(x => x.timeframe === '1m') || { cvd: 0, delta: 0, exhaustion: false },
+            tf5m: cvdM.find(x => x.timeframe === '5m') || { cvd: 0, delta: 0, exhaustion: false },
+            tf15m: cvdM.find(x => x.timeframe === '15m') || { cvd: 0, delta: 0, exhaustion: false },
             tradeCounts: cvd.getTradeCounts() // Debug: trade counts per timeframe
         },
         absorption: absVal,
-        openInterest: lastOpenInterest.get(s) || null,
+        openInterest: leg ? leg.getOpenInterestMetrics() : null,
         funding: lastFunding.get(s) || null,
         legacyMetrics: legacyM, // Null if unseeded
         bids, asks, midPrice: mid,

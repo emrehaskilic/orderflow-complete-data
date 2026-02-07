@@ -71,9 +71,15 @@ export interface TimeAndSalesMetrics {
  * open interest since the previous update.  Source describes whether
  * the data comes from the real exchange or a mock feed.
  */
-export interface OpenInterestContext {
+export interface OpenInterestMetrics {
   openInterest: number;
   delta: number;
+  deltaPercent: number;
+  trend: 'up' | 'down' | 'flat';
+  signal: 'bullish' | 'bearish' | 'neutral';
+  volatility: number;
+  strength: number;
+  lastUpdate: number;
   source: 'real' | 'mock';
 }
 
@@ -107,7 +113,7 @@ export interface MetricsMessage {
     tf15m: CvdTfMetrics;
   };
   absorption: number | null;
-  openInterest: OpenInterestContext | null;
+  openInterest: OpenInterestMetrics | null;
   funding: FundingContext | null;
   legacyMetrics: LegacyMetrics;
   bids: [number, number, number][];

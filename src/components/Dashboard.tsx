@@ -139,17 +139,24 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
         {/* Desktop View (Table) */}
-        <div className="hidden md:block border border-zinc-800 rounded-t-xl overflow-hidden bg-zinc-900/80">
+        <div className="hidden md:block border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/80">
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
-              <div className="grid grid-cols-12 gap-4 p-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                <div className="col-span-2">Symbol</div>
-                <div className="col-span-2">Price</div>
-                <div className="col-span-2">OBI (W)</div>
-                <div className="col-span-2">Delta Z</div>
-                <div className="col-span-2">CVD Slope</div>
-                <div className="col-span-1">Signal</div>
-                <div className="col-span-1 text-right">Status</div>
+              {/* Table Header - Fixed Width Columns */}
+              <div
+                className="grid gap-0 px-4 py-3 text-xs font-bold text-zinc-400 uppercase tracking-wider bg-zinc-900/80 border-b border-zinc-700 sticky top-0 z-10"
+                style={{ gridTemplateColumns: '120px 100px 110px 90px 90px 100px 80px 90px' }}
+              >
+                <div className="flex items-center gap-2">
+                  <span>Symbol</span>
+                </div>
+                <div className="text-right font-mono">Price</div>
+                <div className="text-right font-mono">OI / Δ</div>
+                <div className="text-center">OBI (W)</div>
+                <div className="text-center">Δ Z-Score</div>
+                <div className="text-center">CVD Slope</div>
+                <div className="text-center">Signal</div>
+                <div className="text-right">Status</div>
               </div>
               {/* Table Body */}
               <div className="bg-black/20 divide-y divide-zinc-800/50">
